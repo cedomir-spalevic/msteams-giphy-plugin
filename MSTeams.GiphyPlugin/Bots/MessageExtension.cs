@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using Bogus;
 using MSTeams.GiphyPlugin.Services;
+using MSTeams.GiphyPlugin.Models.Giphy;
 
 namespace MSTeams.GiphyPlugin.Bots
 {
@@ -33,20 +34,32 @@ namespace MSTeams.GiphyPlugin.Bots
 
         protected override async Task<MessagingExtensionResponse> OnTeamsMessagingExtensionQueryAsync(ITurnContext<IInvokeActivity> turnContext, MessagingExtensionQuery query, CancellationToken cancellationToken)
         {
-            var searchString = "";
+            var tempSearch = "";
             var searchParam = query.Parameters?.FirstOrDefault(p => p.Name == "query");
             if (searchParam != null)
             {
-                searchString = searchParam.Value.ToString();
+                tempSearch = searchParam.Value.ToString();
             }
 
             if (query == null || query.CommandId != "searchGifs")
             {
-                // We only process the 'getRandomText' queries with this message extension
                 throw new NotImplementedException($"Invalid CommandId: {query.CommandId}");
             }
 
-            var giphyResponse = await this._giphyService.Search(searchString);
+            // Parse tempSearch for the page number
+            var pageNo = 0;
+            var temp = tempSearch.Split(":");
+            if (temp.Length > 1 && !Int32.TryParse(temp[1], out pageNo))
+                pageNo = 0;
+
+            // If the search term is blank - search trending
+            GiphyResponse giphyResponse = null;
+            if (string.IsNullOrEmpty(temp[0]))
+                giphyResponse = await this._giphyService.GetTrending(pageNo);
+            else
+                giphyResponse = await this._giphyService.Search(temp[0], pageNo);
+
+            // Create Message Extension Response
             var gifs = new List<MessagingExtensionAttachment>();
             foreach (var gif in giphyResponse.Data)
             {

@@ -22,9 +22,20 @@ namespace MSTeams.GiphyPlugin.Services
             this._clientFactory = clientFactory;
         }
 
+        public async Task<GiphyResponse> GetTrending(int offset = 0)
+        {
+            string url = $"{this._options.ApiUrl}gifs/trending?api_key={this._options.ApiKey}&limit=20&offset={offset}";
+            return await this.CallAPI(url);
+        }
+
         public async Task<GiphyResponse> Search(string query, int offset = 0)
         {
             string url = $"{this._options.ApiUrl}gifs/search?api_key={this._options.ApiKey}&q={query}&limit=20&offset={offset}";
+            return await this.CallAPI(url);
+        }
+
+        private async Task<GiphyResponse> CallAPI(string url)
+        {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             var client = this._clientFactory.CreateClient();
             var response = await client.SendAsync(request);
